@@ -1,0 +1,56 @@
+ (1) Banking and Data Analytics 
+
+ (2) African Market needs to be tackled 
+
+ (3) Dormant accounts is a topic that can help us to enter the marker
+
+ (4) Dormant accounts should be closed by regulation // agios (fictive revenues) // 
+
+ (5) Strategy: Create a PoC with a Bank/Industrial 
+
+ (6) Magloire is a banker (Harvard or Stanford)
+ 
+ (7) Data Analytics & IT potentially interesting topics for Africa
+
+ (8) Cameroonian Banker (Banque Atlantique)
+
+ (9) Use Case: comptes dormants --> UBA ?? (Partner of Axel)
+
+(10) Marketing System for activation of dormant accounts (
+
+(11) 100 Mio at the very beginning --> Big Bet / Call Magloire // evaluation how much it costs --> creat argumentaire
+
+(12) Magloire can help uis to define 5 major products 
+
+(13) Calculation Agios injustifies --> intersting for Banks & for Bank-Opponents
+
+(14) PoC in 2 weeks time from now (deadline: 25.02.2024)
+
+(15) Analyse and understand regulation for inactive accounts ("compte dormants")
+
+(16) PoC := Proof of Concept ~ Prototype 
+
+(17) R Shiny Web App := displaying specific information related to inactive accounts
+
+     * Liste der compte inactifs à date (name, account number, contact details (email, tel, adress, geo location, city, profession), 
+         duration of inactivity, date of last transaction, type oflast transaction, current balance, balance at start,
+         probability of getting the guy back to activity)
+     * distribution of inactive accounts (number, %age) during a specific defined period of time
+     * Financial Impact of inactive accounts (somme des agios non percus, ...) + historical view // baseline 
+     * Recommendation system when a baseline is reached 
+     * idea := create a model for estimation of probability of inactivity (?)
+
+
+(18)  Marketing Campaign := Reactivation of inactive accounts
+
+(19) Next Step: check if other variables can be used her or analysed in the context of inactiv accounts 
+       
+(20) Some interesting liks
+
+     * https://www.kaggle.com/datasets?search=Bank
+    
+
+(21) Customer Table + TransactionTable 
+
+
+
