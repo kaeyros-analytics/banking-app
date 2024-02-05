@@ -417,3 +417,128 @@ highchart() %>%
   hc_plotOptions(grouping = FALSE)
 
 
+library(ggplot2)
+
+# Diagramme en boîte pour l'âge par rapport à status
+ggplot(data1, aes(x = status, y = age, fill = status)) +
+  geom_boxplot() +
+  labs(title = "Distribution de l'âge par rapport à Status")
+
+# Diagramme de densité pour le revenu mensuel moyen par rapport à status
+ggplot(data1, aes(x = average_monthly_revenue, fill = status)) +
+  geom_boxplot(alpha = 0.5) +
+  labs(title = "Distribution du revenu mensuel moyen par rapport à Status")
+
+# Diagramme en barres pour le genre par rapport à status
+ggplot(data1, aes(x = gender, fill = status)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Distribution du genre par rapport à Status")
+
+# Diagramme en nuage de points pour occupation par rapport à status
+ggplot(data1, aes(x = occupation, fill = status)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Distribution de l'occupation par rapport à Status")
+
+# Diagramme en nuage de points pour occupation par rapport à status
+ggplot(data1, aes(x = location, fill = status)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Distribution de l'occupation par rapport à Status")
+
+dashboardSidebar(
+  selectInput("clientID", "Client ID", c(unique(predict_data$client))),
+  selectInput("horizon", "Horizon:", 1:6),
+  actionButton("calculate", "Calculate")
+)
+
+
+start_date <- as.Date("2024-01-01")
+
+# Calcul des six prochains mois
+six_months <- seq(start_date, by = "1 month", length.out = 6)
+
+# Création d'un data frame pour stocker les données des six prochains mois
+
+
+# Calcul des PD pour chaque modèle et chaque mois
+
+PD <- c(
+  1/(1 + exp(-predict(log_model1, newdata = predict_data[predict_data$client == "client 1", ][,1:6], type = "response"))),
+  1/(1 + exp(-predict(log_model2, newdata = predict_data[predict_data$client == "client 1", ][,1:6], type = "response"))),
+  1/(1 + exp(-predict(log_model3, newdata = predict_data[predict_data$client == "client 1", ][,1:6], type = "response"))),
+  1/(1 + exp(-predict(log_model4, newdata = predict_data[predict_data$client == "client 1", ][,1:6], type = "response"))),
+  1/(1 + exp(-predict(log_model5, newdata = predict_data[predict_data$client == "client 1", ][,1:6], type = "response"))),
+  1/(1 + exp(-predict(log_model6, newdata = predict_data[predict_data$client == "client 1", ][,1:6], type = "response")))
+  )
+data_pd <- data.frame(Month = six_months, PD= round(PD*100,2))
+
+
+# Création du graphique Highcharter
+highchart() %>%
+  hc_title(text = "Probabilités de défaut pour les six prochains mois") %>%
+  hc_xAxis(categories = six_months) %>%
+  hc_yAxis(
+    title = list(text = "Probabilité de défaut (PD)"),
+    labels = list(format = "{value}%")
+  ) %>%
+  hc_add_series(name = "Mois 1", data = data_pd$PD) %>%
+  hc_tooltip(
+    valueSuffix = "%"
+  )
+
+data <- table_predict_data[1:50,]
+
+colnames(data) <- c("Client_id", "First Name", "Last Name", "Age", "Gender", "Occupation", "PD month1", "PD month2",
+                    "PD month3", "PD month4", "PD month5", "PD month6")
+
+# Calculer les variations pour chaque mois
+for (i in 7:12) {
+  data[[paste0("variation_month", i - 6)]] <- data[[i]] - data[[i - 1]]
+}
+
+# Formater les variations
+for (i in 13:18) {
+  data[[i]] <- color_tile("white", "green")(sign(data[[i]]) * 100 * abs(data[[i]]))
+}
+
+formattable::formattable(data, align = "l")
+
+
+
+# Charger la bibliothèque formattable
+library(formattable)
+
+# Créer un data frame avec les données des clients
+data <- data.frame(
+  Client = c("client 1", "client 2", "client 3", "client 4", "client 5", "client 6"),
+  PD_month1 = c(0.48, 0.46, 0.33, 0.32, 0.27, 0.32),
+  PD_month2 = c(0.48, 0.46, 0.33, 0.32, 0.27, 0.32),
+  PD_month3 = c(0.48, 0.46, 0.33, 0.32, 0.27, 0.32),
+  PD_month4 = c(0.48, 0.46, 0.33, 0.32, 0.27, 0.32),
+  PD_month5 = c(0.31, 0.36, 0.28, 0.28, 0.23, 0.44),
+  PD_month6 = c(0.52, 0.57, 0.32, 0.28, 0.19, 0.47)
+)
+
+dat <- sapply(data[,2:6], as.numeric)
+
+# Créer une matrice pour les différences entre les mois
+diff_matrix <- sapply(1:ncol(dat), function(i) {
+  dat[, i] - dat[, i - 1]
+})
+
+# Ajouter la première colonne (clients) à la matrice des différences
+diff_matrix <- cbind(data$Client, diff_matrix)
+
+# Nommer les colonnes
+colnames(diff_matrix) <- colnames(data)
+
+# Créer un objet formattable
+formattable_diff <- formattable(diff_matrix)
+
+# Afficher le formattable
+formattable_diff
+
+
+
+
+
+
