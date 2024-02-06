@@ -26,6 +26,7 @@ library(highcharter)
 library(leaflet)
 library(rhandsontable)
 library(formattable)
+library(shinyWidgets)
 ## 1. get root dir ----
 root <- getwd()
 #path_data <- paste(root, "/", "data", sep="")
@@ -50,10 +51,10 @@ account <- account %>%
 # Ajout de la colonne classe d'age
 account <- account %>%
   mutate(age_interval = cut(age, breaks = c(-Inf, 30, 40, 50, 60, Inf), 
-                            labels = c("<30","30-40","40-50", "50-60", ">=60")),
+                            labels = c("<30","30-39","40-49", "50-59", ">=60")),
          monthly_revenue_class = cut(average_monthly_revenue, breaks = c(-Inf,250000,500000,750000,Inf),
                                      labels = c("<250K", "250K-500K", "500K-750K", ">750K"))
-         )
+  )
 # Créer une nouvelle colonne avec les valeurs modifiées
 account$client_id <- paste0("client_", seq_along(account$account_id) - 1)
 
@@ -109,81 +110,81 @@ population <- account %>%
 
 # "Inactive"==0, "Active"==1
 data1 <- (population %>% 
-  filter(transaction_date < as.Date("2018-01-31")) %>% 
-  mutate(status = if_else((as.Date("2018-01-31") - last_transaction_date) > 120, 0, 1),
-         gender = factor(gender),
-         occupation = factor(occupation),
-         location = factor(location)) %>% 
-  distinct(account_id,status, .keep_all=TRUE) %>% 
-  select(account_id,age_interval,gender,occupation,location,monthly_revenue_class,
-         number_of_children,status,last_name, first_name, age) %>% 
-  filter(location != "Douala") %>% 
-  arrange(status))[1:20,] 
+            filter(transaction_date < as.Date("2018-01-31")) %>% 
+            mutate(status = if_else((as.Date("2018-01-31") - last_transaction_date) > 120, 0, 1),
+                   gender = factor(gender),
+                   occupation = factor(occupation),
+                   location = factor(location)) %>% 
+            distinct(account_id,status, .keep_all=TRUE) %>% 
+            select(account_id,age_interval,gender,occupation,location,monthly_revenue_class,
+                   number_of_children,status,last_name, first_name, age) %>% 
+            filter(location != "Douala") %>% 
+            arrange(status))[1:20,] 
 
 data2 <- (population %>% 
-  filter(transaction_date< as.Date("2018-10-31")) %>% 
-  mutate(status = if_else((as.Date("2018-10-31") - last_transaction_date) > 90, 0, 1),
-         gender = factor(gender),
-         occupation = factor(occupation),
-         location = factor(location)) %>% 
-  distinct(account_id,status, .keep_all=TRUE) %>% 
-  select(account_id,age_interval,gender,occupation,location,monthly_revenue_class,
-         number_of_children,status,last_name, first_name, age) %>% 
-  filter(location != "Douala") %>% 
-  arrange(status))[1:13,] 
+            filter(transaction_date< as.Date("2018-10-31")) %>% 
+            mutate(status = if_else((as.Date("2018-10-31") - last_transaction_date) > 90, 0, 1),
+                   gender = factor(gender),
+                   occupation = factor(occupation),
+                   location = factor(location)) %>% 
+            distinct(account_id,status, .keep_all=TRUE) %>% 
+            select(account_id,age_interval,gender,occupation,location,monthly_revenue_class,
+                   number_of_children,status,last_name, first_name, age) %>% 
+            filter(location != "Douala") %>% 
+            arrange(status))[1:13,] 
 
 data3 <- (population %>% 
-  filter(transaction_date< as.Date("2018-11-30")) %>% 
-  mutate(status = if_else((as.Date("2018-11-30") - last_transaction_date) > 90, 0, 1),
-         gender = factor(gender),
-         occupation = factor(occupation),
-         location = factor(location)) %>% 
-  distinct(account_id,status, .keep_all=TRUE) %>% 
-  select(account_id,age_interval,gender,occupation,location,monthly_revenue_class,
-         number_of_children,status,last_name, first_name, age) %>% 
-  filter(location != "Douala")%>% 
-  arrange(status))[1:16,] 
+            filter(transaction_date< as.Date("2018-11-30")) %>% 
+            mutate(status = if_else((as.Date("2018-11-30") - last_transaction_date) > 90, 0, 1),
+                   gender = factor(gender),
+                   occupation = factor(occupation),
+                   location = factor(location)) %>% 
+            distinct(account_id,status, .keep_all=TRUE) %>% 
+            select(account_id,age_interval,gender,occupation,location,monthly_revenue_class,
+                   number_of_children,status,last_name, first_name, age) %>% 
+            filter(location != "Douala")%>% 
+            arrange(status))[1:16,] 
 
 data4 <- ((population) %>% 
-  filter(transaction_date< as.Date("2018-12-31")) %>% 
-  mutate(status = if_else((as.Date("2018-12-31") - last_transaction_date) > 90, 0, 1),
-         gender = factor(gender),
-         occupation = factor(occupation),
-         location = factor(location)) %>% 
-  distinct(account_id,status, .keep_all=TRUE) %>% 
-  select(account_id,age_interval,gender,occupation,location,monthly_revenue_class,
-         number_of_children,status,last_name, first_name, age) %>% 
-  filter(location != "Douala") %>% 
-  arrange(status))[1:20,] 
+            filter(transaction_date< as.Date("2018-12-31")) %>% 
+            mutate(status = if_else((as.Date("2018-12-31") - last_transaction_date) > 90, 0, 1),
+                   gender = factor(gender),
+                   occupation = factor(occupation),
+                   location = factor(location)) %>% 
+            distinct(account_id,status, .keep_all=TRUE) %>% 
+            select(account_id,age_interval,gender,occupation,location,monthly_revenue_class,
+                   number_of_children,status,last_name, first_name, age) %>% 
+            filter(location != "Douala") %>% 
+            arrange(status))[1:20,] 
 
 data5 <- (population %>% 
-  filter(transaction_date< as.Date("2019-01-31")) %>% 
-  mutate(status = if_else((as.Date("2019-01-31") - last_transaction_date) > 90, 0, 1),
-         gender = factor(gender),
-         occupation = factor(occupation),
-         location = factor(location)) %>% 
-  distinct(account_id,status, .keep_all=TRUE) %>% 
-  select(account_id,age_interval,gender,occupation,location,monthly_revenue_class,
-         number_of_children,status,last_name, first_name, age) %>% 
-  filter(location != "Douala") %>% 
-  arrange(status))[1:22,] 
+            filter(transaction_date< as.Date("2019-01-31")) %>% 
+            mutate(status = if_else((as.Date("2019-01-31") - last_transaction_date) > 90, 0, 1),
+                   gender = factor(gender),
+                   occupation = factor(occupation),
+                   location = factor(location)) %>% 
+            distinct(account_id,status, .keep_all=TRUE) %>% 
+            select(account_id,age_interval,gender,occupation,location,monthly_revenue_class,
+                   number_of_children,status,last_name, first_name, age) %>% 
+            filter(location != "Douala") %>% 
+            arrange(status))[1:22,] 
 
 data6 <- (population %>% 
-  filter(transaction_date< as.Date("2019-02-28")) %>% 
-  mutate(status = if_else((as.Date("2019-02-28") - last_transaction_date) > 90, 0, 1),
-         gender = factor(gender),
-         occupation = factor(occupation),
-         location = factor(location)) %>% 
-  distinct(account_id,status, .keep_all=TRUE) %>% 
-  select(account_id,age_interval,gender,occupation,location,monthly_revenue_class,
-         number_of_children,status,last_name, first_name, age) %>% 
-  filter(location != "Douala") %>% 
-  arrange(status))[1:25,] 
+            filter(transaction_date< as.Date("2019-02-28")) %>% 
+            mutate(status = if_else((as.Date("2019-02-28") - last_transaction_date) > 90, 0, 1),
+                   gender = factor(gender),
+                   occupation = factor(occupation),
+                   location = factor(location)) %>% 
+            distinct(account_id,status, .keep_all=TRUE) %>% 
+            select(account_id,age_interval,gender,occupation,location,monthly_revenue_class,
+                   number_of_children,status,last_name, first_name, age) %>% 
+            filter(location != "Douala") %>% 
+            arrange(status))[1:25,] 
 
 
 ##### Model 
 log_model1 <- glm(status ~ age_interval+gender+ occupation+location + monthly_revenue_class + number_of_children,
-                 data = data1[, !colnames(data1) %in% c("account_id")][1:7], family = "gaussian")
+                  data = data1[, !colnames(data1) %in% c("account_id")][1:7], family = "gaussian")
 log_model2 <- glm(status ~ age_interval+gender+ occupation+location + monthly_revenue_class + number_of_children,
                   data = data1[, !colnames(data2) %in% c("account_id")][1:7], family = "gaussian")
 log_model3 <- glm(status ~ age_interval+gender+ occupation+location + monthly_revenue_class + number_of_children,
@@ -226,15 +227,6 @@ predict_data <- anti_join(account, data6, by = "account_id") %>%
   select(age_interval,gender,occupation,location,monthly_revenue_class,number_of_children,account_id,last_name, first_name, age) %>% 
   filter(location != "Douala")
 
-
-predicted_classes <- predict_status(log_model1, predict_data[1:6])
-print(predicted_classes)
-(1-1/(1 + exp(-predict(log_model1, newdata = predict_data[1:6], type = "response")[1:10])))
-(1-1/(1 + exp(-predict(log_model2, newdata = predict_data[1:6], type = "response")[1:10])))
-(1-1/(1 + exp(-predict(log_model3, newdata = predict_data[1:6], type = "response")[1:10])))
-(1-1/(1 + exp(-predict(log_model4, newdata = predict_data[1:6], type = "response")[1:10])))
-(1-1/(1 + exp(-predict(log_model5, newdata = predict_data[1:6], type = "response")[1:10])))
-(1-1/(1 + exp(-predict(log_model6, newdata = predict_data[1:6], type = "response")[1:10])))
 
 predict_data <- predict_data %>%
   mutate(Client_id = paste0("client ", 1:n()))

@@ -60,3 +60,37 @@ totalCustomers_df <- reactive({
 
 
 agios[-year_agios]
+
+
+
+# Calculer le nombre de clients par statut et par agence
+df_status_by_agency <- account %>%
+  select(account_id,location, gender) %>%
+  distinct(account_id,location, .keep_all = TRUE) %>%
+  group_by(location, gender) %>%
+  summarise(customer_count = n()) %>% 
+  filter(location=="Bamenda")
+
+# Créer le graphique Highchart
+highchart() %>%
+  hc_chart(type = "bar") %>%
+  hc_xAxis(categories = unique(lapply(df_status_by_agency$location, function(x) list(x)))) %>%
+  hc_add_series(
+    name = "Men", 
+    data = df_status_by_agency %>%
+      filter(gender == "Men") %>%
+      pull(customer_count)
+  ) %>%
+  hc_add_series(
+    name = "Women", 
+    data = df_status_by_agency %>%
+      filter(gender == "Women") %>%
+      pull(customer_count)
+  ) %>%
+  hc_title(text = "Customer Status by city") %>%
+  hc_yAxis(title = list(text = "Number of Customers")) %>%
+  hc_legend(enabled = TRUE) %>%
+  hc_plotOptions(grouping = FALSE)
+
+
+

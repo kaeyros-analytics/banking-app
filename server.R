@@ -1,80 +1,4 @@
-ui <- dashboardPage(
-  dashboardHeader(
-    title = tags$h3(tags$b("Dormant Analysis"))
-  ),
-  dashboardSidebar(
-    conditionalPanel(
-      condition = "input.tab == 'General' || input.tab == 'Inactive' || input.tab == 'Localisation'",
-      dateRangeInput("dateRangeInput",
-                     label = "Period",
-                     startview = "year",
-                     start = min(account$creation_date),
-                     end = max(transactions$transaction_date),
-                     min = min(account$creation_date),
-                     max = max(transactions$transaction_date),
-                     language = "en", separator = " - ", width = "100%", weekstart = 1),
-      selectInput("genderFilter", "Select Gender:", c("Men", "Women", "All"), selected = "All"),
-      selectizeInput("statusFilter", "Select Status:", choices = c("Inactive", "Active"), multiple = TRUE, selected = c("Inactive", "Active")),
-      selectInput("cityFilter", "Select City:", c(unique(account$location), "All"), selected = "All"),
-      actionButton("loadDataButton", "Apply filters")
-    ),
-    conditionalPanel(
-      condition = "input.tab == 'Predictive'",
-      selectInput("client_id", "Client_ID:", c(unique(predict_data$Client_id)))
-    )
-  ),
-  dashboardBody(
-    tabsetPanel(
-      id = "tab",
-      tabPanel("General",
-               fluidRow(
-                 valueBoxOutput("totalCustomers", width = 3),
-                 valueBoxOutput("activeCustomers", width = 3),
-                 valueBoxOutput("inactiveCustomers", width = 3),
-                 valueBoxOutput("revenueLoss", width = 3)
-               ),
-               fluidRow(
-                 box(width = 6, shinycssloaders::withSpinner(highchartOutput("totalCustomersByGender"), type = 5, color = 'blue')),
-                 box(width = 6, shinycssloaders::withSpinner(highchartOutput("totalCustomersByMarital"), type = 5, color = 'blue'))
-               ),
-               fluidRow(
-                 box(width = 6, shinycssloaders::withSpinner(highchartOutput("CustomersStatusByAgency"), type = 1, color = 'blue')),
-                 box(width = 6, shinycssloaders::withSpinner(highchartOutput("CustomersStatusByActivity"), type = 1, color = 'blue'))
-               )
-      ),
-      tabPanel("Inactive",
-               fluidRow(
-                 box(width = 6, shinycssloaders::withSpinner(highchartOutput("CustomersStatusByBalanceClass"), type = 5, color = 'blue')),
-                 box(width = 6, shinycssloaders::withSpinner(highchartOutput("CustomersStatusByAgeClass"), type = 5, color = 'blue'))
-               ),
-               fluidRow(
-                 box(width = 12, shinycssloaders::withSpinner(highchartOutput("TemporelSerie"), type = 1, color = 'blue'))
-               )
-      ),
-      tabPanel("Localisation",
-               fluidRow(
-                 box(width = 12, shinycssloaders::withSpinner(leafletOutput("Carte"), type = 5, color = 'blue'))
-               ),
-               fluidRow(
-                 downloadButton("downloadCSV", tags$b("Download Table")),
-                 box(width = 12, tags$h3(tags$b("List of Inactive Accounts")), shinycssloaders::withSpinner(rHandsontableOutput('Table'), type = 1, color = 'blue'))
-               )
-      ),
-      tabPanel("Predictive",
-               fluidRow(
-                 box(width = 12, highchartOutput("DefaultEvolution"))
-               ),
-               fluidRow(
-                 downloadButton("downloadCSV1", tags$b("Download Table")),
-                 box(width = 12, tags$h3(tags$b("Customer default probability table over six months")), formattableOutput('Table1'))
-               )
-      )
-    )
-  )
-)
-
-
-server <- function(input, output) {
+function(input, output) {
   observeEvent(input$loadDataButton, {
     # Filtered data based on user inputs
     
@@ -212,13 +136,16 @@ server <- function(input, output) {
         select(account_id, gender) %>%
         distinct(account_id, gender, .keep_all = TRUE) %>%
         group_by(gender) %>%
-        summarise(total = n())
+        summarise(total = n()) %>%
+        mutate(percentage = round((total / sum(total)) * 100, 2)) # Calcul du pourcentage
       
       highchart() %>%
         hc_chart(type = "pie") %>%
-        hc_add_series(name = "Customers", data = list_parse2(df1),innerSize = "50%") %>%
-        hc_title(text = "Customers by Gender")
+        hc_add_series(name = "Customers", data = list_parse2(df1), innerSize = "50%") %>%
+        hc_title(text = "Customers by Gender") %>%
+        hc_tooltip(pointFormat = "<b>{point.y} ({point.percentage:.1f}%)</b>")
     })
+    
     
     output$totalCustomersByMarital <- renderHighchart({
       customers_by_marital <- totalCustomers_df %>%
@@ -259,7 +186,7 @@ server <- function(input, output) {
       # Créer le graphique Highchart
       highchart() %>%
         hc_chart(type = "bar") %>%
-        hc_xAxis(categories = unique(df_status_by_agency$location)) %>%
+        hc_xAxis(categories = unique(lapply(df_status_by_agency$location, function(x) list(x)))) %>%
         hc_add_series(
           name = "Active", 
           data = df_status_by_agency %>%
@@ -347,7 +274,7 @@ server <- function(input, output) {
         hc_chart(type = "column") %>%
         hc_title(text = "Status of customers by balance") %>%
         hc_xAxis(categories = unique(data_summary$balance_interval)) %>%
-        hc_yAxis(title = list(text = "Nombre de clients")) %>%
+        hc_yAxis(title = list(text = "Number of Customers")) %>%
         hc_plotOptions(grouping = FALSE) %>%
         hc_add_series(name = "Active", data = data_summary[data_summary$status == "Active",]$count) %>%
         hc_add_series(name = "Inactive", data = data_summary[data_summary$status == "Inactive",]$count) %>%
@@ -368,7 +295,7 @@ server <- function(input, output) {
         hc_chart(type = "column") %>%
         hc_title(text = "Status of customers by age") %>%
         hc_xAxis(categories = unique(data_summary$age_interval)) %>%
-        hc_yAxis(title = list(text = "Nombre de clients")) %>%
+        hc_yAxis(title = list(text = "Number of Customers")) %>%
         hc_plotOptions(grouping = FALSE) %>%
         hc_add_series(name = "Active", data = data_summary[data_summary$status == "Active",]$count) %>%
         hc_add_series(name = "Inactive", data = data_summary[data_summary$status == "Inactive",]$count) %>%
@@ -408,8 +335,8 @@ server <- function(input, output) {
     
     output$Carte <- renderLeaflet({
       df <- totalCustomers_df %>% 
-        distinct(account_id, latitude,longitude, marital_status, last_name, first_name, age,gender, occupation, status) %>% 
-        filter(status == "Inactive")
+        distinct(account_id, latitude,longitude, marital_status, last_name, first_name, age,gender, occupation,location, status) #%>% 
+      #filter(status == "Inactive")
       
       # Créer une carte Leaflet
       leaflet(df) %>%
@@ -421,20 +348,21 @@ server <- function(input, output) {
             "<b>Name:</b> ", first_name, " ", last_name, "<br>",
             "<b>Age:</b> ", age, "<br>",
             "<b>Marital Status:</b> ", marital_status, "<br>",
-            "<b>Occupation:</b> ", occupation
+            "<b>Occupation:</b> ", occupation, "<br>",
+            "<b>Location:</b> ", location
           ),
           clusterOptions = markerClusterOptions()  # Ajout du regroupement de marqueurs
         ) %>%
         addScaleBar() %>%     # Ajout de l'échelle
         addCircleMarkers(
-          color = ~ifelse(gender == "Men", "blue", "red") 
+          color = ~ifelse(status == "Active", "blue", "red") 
         ) %>% 
         addLegend("topright",
                   colors = c("blue", "red"),
-                  labels = c("Men", "Women"),
-                  title = "Gender",
-                  opacity = 1
-        )
+                  labels = c("Active", "Inactive"),
+                  title = "Status",
+                  opacity = 1) %>% 
+        setView(lng = 7.284076, lat = 5.054194591, zoom = 6)
     })
     
     output$Table <- renderRHandsontable({
@@ -471,7 +399,7 @@ server <- function(input, output) {
       }
     )
     
-  })
+  },ignoreNULL = FALSE)
   
   output$DefaultEvolution <- renderHighchart({
     six_months <- seq(input$dateRangeInput[2], by = "1 month", length.out = 6)
@@ -487,13 +415,13 @@ server <- function(input, output) {
     data_pd <- data.frame(Month = six_months, PD= round(PD*100,2))
     
     highchart() %>%
-      hc_title(text = "Default probabilities over the next six months") %>%
+      hc_title(text = "Inactive probabilities over the next six months") %>%
       hc_xAxis(categories = six_months) %>%
       hc_yAxis(
         title = list(text = "Default Probability (%)"),
         labels = list(format = "{value}%")
       ) %>%
-      hc_add_series(name="PD", data = data_pd$PD) %>%
+      hc_add_series(name="PD", data = data_pd$PD,color = "red") %>%
       hc_tooltip(
         valueSuffix = "%"
       )
@@ -522,5 +450,3 @@ server <- function(input, output) {
     }
   )
 }
-
-shinyApp(ui, server)
