@@ -29,15 +29,18 @@ library(formattable)
 library(shinyWidgets)
 ## 1. get root dir ----
 root <- getwd()
-#path_data <- paste(root, "/", "data", sep="")
+path_data <- paste(root, "/", "data1", sep="")
+file_data_accounts <- paste(path_data, "/", "accounts.json", sep="")
+file_data_agios <- paste(path_data, "/", "agios.json", sep="")
+file_data_transactions <- paste(path_data, "/", "transactions.json", sep="")
 
 
 # paths to JSON files
-chemin_accounts <- "C:/Kaeyros/banking-app/data1/accounts.json"
-chemin_agios <- "C:/Kaeyros/banking-app/data1/agios.json"
-chemin_transactions <- "C:/Kaeyros/banking-app/data1/transactions.json"
+# chemin_accounts <- "C:/Kaeyros/banking-app/data1/accounts.json"
+# chemin_agios <- "C:/Kaeyros/banking-app/data1/agios.json"
+# chemin_transactions <- "C:/Kaeyros/banking-app/data1/transactions.json"
 # Reading of json bases and motification of columns format 
-account <- fromJSON(chemin_accounts)
+account <- fromJSON(file_data_accounts)
 account <- account %>% 
   mutate(dateofbirth = as.Date(dateofbirth, format = "%Y-%m-%d"),
          closing_date = as.Date(closing_date, format = "%Y-%m-%d"),
@@ -71,7 +74,7 @@ account$longitude <- longitude
 # Supprimer la colonne geo_location car nous l'avons maintenant séparée en latitude et longitude
 account$geo_location <- NULL  # Supprimer la colonne geo_location
 
-agios <- fromJSON(chemin_agios)
+agios <- fromJSON(file_data_agios)
 colnames(agios)[2] <- "year_agios"
 agios$year_agios <-  as.Date(agios$year_agios, format = "%Y-%m-%d")
 agios$month_agios <- lubridate::month(agios$year_agios)
@@ -82,7 +85,7 @@ agios <- agios %>%
                                     labels = c("<0M","0M-1M","1M-5M",">5M"))
   )
 
-transactions <- fromJSON(chemin_transactions)
+transactions <- fromJSON(file_data_transactions)
 transactions <- transactions %>%
   mutate(account_id = as.character(account_id),
          transaction_id = as.character(transaction_id),
@@ -90,9 +93,13 @@ transactions <- transactions %>%
 
 # Export to excel file
 
-write_xlsx(account,"C:/Kaeyros/banking-app/data1/account.xlsx")
-write_xlsx(agios,"C:/Kaeyros/banking-app/data1/agios.xlsx")
-write_xlsx(transactions,"C:/Kaeyros/banking-app/data1/transactions.xlsx")
+account_write_path <- paste(path_data, "/", "account.xlsx", sep = "")
+agios_write_path <- paste(path_data, "/", "agios.xlsx", sep = "")
+transactions_write_path <- paste(path_data, "/", "transactions.xlsx", sep = "")
+
+write_xlsx(account,path = account_write_path)
+write_xlsx(agios,path = agios_write_path)
+write_xlsx(transactions,path = transactions_write_path)
 
 ################## MODELISATION #########################
 
@@ -213,15 +220,7 @@ coefficients_df <- data.frame(
   Coefficient = coefficients
 )
 
-# Trier les coefficients par valeur absolue
-coefficients_df <- coefficients_df[order(abs(coefficients_df$Coefficient), decreasing = TRUE), ]
 
-# Créer un graphique à barres pour visualiser les coefficients
-ggplot(coefficients_df, aes(x = reorder(Feature, Coefficient), y = Coefficient)) +
-  geom_bar(stat = "identity", fill = "skyblue", color = "black") +
-  coord_flip() +
-  labs(x = "Feature", y = "Coefficient", title = "Feature Importance dans le modèle de régression logistique") +
-  theme_minimal()
 
 predict_data <- anti_join(account, data6, by = "account_id") %>% 
   select(age_interval,gender,occupation,location,monthly_revenue_class,number_of_children,account_id,last_name, first_name, age) %>% 
