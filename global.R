@@ -29,17 +29,13 @@ library(formattable)
 library(shinyWidgets)
 ## 1. get root dir ----
 root <- getwd()
+# paths to JSON files
 path_data <- paste(root, "/", "data1", sep="")
 file_data_accounts <- paste(path_data, "/", "accounts.json", sep="")
 file_data_agios <- paste(path_data, "/", "agios.json", sep="")
 file_data_transactions <- paste(path_data, "/", "transactions.json", sep="")
 
 
-# paths to JSON files
-# chemin_accounts <- "C:/Kaeyros/banking-app/data1/accounts.json"
-# chemin_agios <- "C:/Kaeyros/banking-app/data1/agios.json"
-# chemin_transactions <- "C:/Kaeyros/banking-app/data1/transactions.json"
-# Reading of json bases and motification of columns format 
 account <- fromJSON(file_data_accounts)
 account <- account %>% 
   mutate(dateofbirth = as.Date(dateofbirth, format = "%Y-%m-%d"),
@@ -93,13 +89,13 @@ transactions <- transactions %>%
 
 # Export to excel file
 
-account_write_path <- paste(path_data, "/", "account.xlsx", sep = "")
-agios_write_path <- paste(path_data, "/", "agios.xlsx", sep = "")
-transactions_write_path <- paste(path_data, "/", "transactions.xlsx", sep = "")
-
-write_xlsx(account,path = account_write_path)
-write_xlsx(agios,path = agios_write_path)
-write_xlsx(transactions,path = transactions_write_path)
+# account_write_path <- paste(path_data, "/", "account.xlsx", sep = "")
+# agios_write_path <- paste(path_data, "/", "agios.xlsx", sep = "")
+# transactions_write_path <- paste(path_data, "/", "transactions.xlsx", sep = "")
+# 
+# write_xlsx(account,path = account_write_path)
+# write_xlsx(agios,path = agios_write_path)
+# write_xlsx(transactions,path = transactions_write_path)
 
 ################## MODELISATION #########################
 
