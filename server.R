@@ -156,7 +156,7 @@ function(input, output) {
       
       highchart() %>%
         hc_chart(type = "bar") %>%
-        hc_xAxis(categories = unique(lapply(customers_by_marital$marital_status, function(xe) list(x)))) %>%
+        hc_xAxis(categories = unique(lapply(customers_by_marital$marital_status, function(x) list(x)))) %>%
         hc_add_series(
           name = "Active", 
           data = customers_by_marital %>%
