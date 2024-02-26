@@ -1,0 +1,3 @@
+- le vif , variable influencant
+- analyse predictive par groupe de population, par current balance
+- PD probability sur 06, 12 months

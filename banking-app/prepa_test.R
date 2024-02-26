@@ -1,80 +1,4 @@
 
-totalCustomers_df <- reactive({
-  
-  if(input$genderFilter == "All"){
-    account %>%
-      full_join(transactions, by = "account_id") %>% 
-      filter(transaction_date >= input$dateRangeFilter[1],
-             transaction_date <= input$dateRangeFilter[2],
-             #if () gender == input$genderFilter else TRUE,
-             status == input$statusFilter,
-             transaction_city == input$cityFilter)
-  } else{
-    account %>%
-      full_join(transactions, by = "account_id") %>% 
-      filter(transaction_date >= input$dateRangeFilter[1] &  transaction_date <= input$dateRangeFilter[2],
-             gender == input$genderFilter,
-             status == input$statusFilter,
-             transaction_city == input$cityFilter)
-  }
-
-})
-
-df_join_full = account %>%
-  full_join(transactions, by = "account_id",relationship = "many-to-many")
-View(df_join_full)
-
-df_join_left = account %>%
-  left_join(transactions, by = "account_id",relationship = "many-to-many") %>% 
-  filter(transaction_date >= "2016-09-22" &  transaction_date <= "2022-09-22",
-         status == "Inactive")
-  
-nrow(df_join_left)
-
-# transactions_type_df <- reactive({
-#   transactions %>%
-#     filter(transaction_date >= input$dateRangeFilter[1],
-#            transaction_date <= input$dateRangeFilter[2],
-#            if (input$genderFilter != "All") gender == input$genderFilter else TRUE,
-#            status == input$statusFilter,
-#            city == input$cityFilter)
-# })
-
-
-
-#   output$activeCustomers <- renderText({
-#     paste("Active Customers: ", sum(totalCustomers_df$status == "Active"))
-#   })
-#   
-#   output$inactiveCustomers <- renderText({
-#     paste("Inactive Customers: ", sum(totalCustomers_df$status == "Inactive"))
-#   })
-#   
-  # # Additional Analysis
-  # output$totalCustomersByMarital <- renderPlot({
-  #   ggplot(totalCustomers_df, aes(x = marital_status, fill = marital_status)) +
-  #     geom_bar() +
-  #     labs(title = "Total Customers by Marital Status")
-  # })
-#   
-#   output$totalCustomersByGender <- renderPlot({
-#     ggplot(totalCustomers_df, aes(x = gender, fill = gender)) +
-#       geom_bar() +
-#       labs(title = "Total Customers by Gender")
-#   })
-#   
-#   output$transactionsByType <- renderPlot({
-#     ggplot(transactions_type_df, aes(x = transaction_type, fill = transaction_type)) +
-#       geom_bar() +
-#       labs(title = "Number of Transactions by Type")
-#   })
-#   
-#   output$transactionsByGender <- renderPlot({
-#     ggplot(df_transactions_gender, aes(x = gender, fill = transaction_type)) +
-#       geom_bar(position = "dodge") +
-#       labs(title = "Number of Transactions by Gender")
-#   })
-
 
 test <- account %>%
   full_join(transactions, by = "account_id")
@@ -135,7 +59,7 @@ test1 <- transactions %>%
   filter(transaction_date <= "2022-09-22")
 
 test2 <- account %>% 
-  filter(gender == "Homme")
+  filter(gender == "Men")
 
 inner_test <- test2 %>% 
   inner_join(test1, by = "account_id") %>% 
@@ -178,12 +102,118 @@ test3 <- inner_test_filter %>%
 
 
 test_agios <- agios %>% 
-  filter(year_agios<= "2022-09-22") 
+  filter(Year_agios<= "2023-12-22") 
 
 inner_test_filter_agios <- inner_test_filter %>% 
   inner_join(test_agios,by="account_id",
              relationship = "many-to-many")
 
+# Définir la date de référence
+date_reference <- as.Date("2022-09-22")
+
+# Calculer les 12 mois passés
+months_past <- seq(date_reference %m-% months(24), by = "1 month", length.out = 24)
+
+# Calculer les six prochains mois
+months_future <- seq(date_reference %m+% months(0), by = "1 month", length.out = 6)
+
+# Afficher les résultats
+print("12 mois passés :")
+print(months_past)
+
+loss <- c()
+for (month in months_past){
+  Inactive_accounts <- inner_test_filter_agios %>% 
+    filter(Year_agios <= as.Date(month) ,balance_after_agios<0)
+  loss <- c(loss,-round(sum(Inactive_accounts$balance_after_agios)/1000000,2) )
+}
+loss <- sample(x = loss, size = length(loss), replace = TRUE)
+#   rnorm(24, mean = mean(loss), sd = sd(loss))
+ts_data=ts(loss)
+
+# # Créer un modèle ARIMA à partir des données de séries temporelles ts_data
+fit <- auto.arima(ts_data)
+plot(forecast(fit,h=20))
+autoplot(forecast(fit,h=20)) + xlab("Time") + ylab("Values") + ggtitle("Dynamic Forecast Plot")
+# Générer des prévisions pour les 10 prochaines périodes
+forecast_values <- sample(x = loss, size = 8, replace = TRUE)
+forecast_values <- forecast(fit,h=6)
+
+# Nombre de périodes à prédire
+n_pred <- 6
+# forecast_values <- rnorm(forecast_values$mean, mean = mean(forecast_values$mean), sd = sd(forecast_values$mean))
+
+# Créer un dataframe pour la visualisation
+loss_data <- data.frame(
+  time = c(months_past, months_future),
+  Loss = c(loss,head(forecast_values$mean,1) ,rep(NA, n_pred-1)),
+  Loss_predict = c(rep(NA, length(loss)),forecast_values$mean),
+  Lower = c(rep(NA, length(loss)),head(forecast_values$mean,1), forecast_values$lower[1:5]),
+  Upper = c(rep(NA, length(loss)),head(forecast_values$mean,1), forecast_values$upper[1:5]),
+  Type = rep(c("Actual", "Forecast"), c(length(loss), n_pred))
+)
+
+plot_ly(loss_data, x = ~time) %>%
+  add_lines(y = ~Loss, name = "Loss", line = list(color = "blue")) %>%
+  add_lines(y = ~Loss_predict, name = "Loss Prediction", line = list(color = "red")) %>%
+  add_lines(y = ~Lower, name = "Lower", line = list(color = "green")) %>%
+  add_lines(y = ~Upper, name = "Upper", line = list(color = "green")) %>%
+  layout(title = "Loss Prediction vs Actual Loss",
+         xaxis = list(title = "Time", tickformat = "%b %Y"),
+         yaxis = list(title = "Loss(Million)",tickformat = ",.2r",ticksufix = "M"))
+
+
+# Convertir en format plotly
+loss_plot <- plot_ly(data = loss_data, x = ~Date, y = ~Loss, type = 'scatter', mode = 'lines', name = 'Loss') %>%
+  add_trace(y = ~Upper, fill = 'tonexty', fillcolor = 'rgba(255,0,0,0.2)', line = list(color = 'transparent'), name = 'Upper Bound') %>%
+  add_trace(y = ~Lower, fill = 'tonexty', fillcolor = 'rgba(255,0,0,0.2)', line = list(color = 'transparent'), name = 'Lower Bound') %>%
+  layout(title = "Pertes financières en banque dues au churn avec prédiction et intervalle de confiance",
+         xaxis = list(title = "Date"),
+         yaxis = list(title = "Pertes financières"))
+
+# Afficher le graphique
+loss_plot
+
+set.seed(123)
+ts_data <- ts(rnorm(100), start = c(2020, 1), frequency = 12)
+
+# Fit ARIMA model to the data
+fit <- auto.arima(ts_data)
+
+# Generate forecast for the next 20 periods
+forecast_values <- forecast(fit, h = 20)
+
+# Extract time series for plotting
+time_series <- c(time(ts_data), rep(NA, 20))
+forecast_series <- c(ts_data, forecast_values$mean)
+lower_bound <- c(ts_data, forecast_values$lower[1:20])
+upper_bound <- c(ts_data, forecast_values$uppe[1:20])
+
+# Create a data frame for plotting
+df <- data.frame(Time = time_series, Values = forecast_series, Lower = lower_bound, Upper = upper_bound)
+
+
+
+time<- seq(as.Date("2022-01-01"), by = "month", length.out = 10)
+lower<- c(NA,NA,NA,NA,8.07,5.00,5.43,5.76,6.02,6.22)
+loss<- c(3.75,11.89,15.03,4.98,8.07,NA,NA,NA,NA,NA)
+loss_predict<- c(NA,NA,NA,NA,8.07,8.08,8.08,8.08,8.08,8.08)
+upper<- c(NA,NA,NA,NA,8.07,11.17,10.73,10.41,10.15,9.94)
+data = data.frame(time,lower,loss,loss_predict,upper)
+
+# Création du graphique avec Plotly
+
+
+
+
+
+# Create dynamic forecast plot using Plotly
+plot_ly(df, x = ~Time) %>%
+  add_lines(y = ~Values, name = 'Forecast', line = list(color = 'blue')) %>%
+  add_lines(y = ~Lower, name = 'Lower Bound', line = list(color = 'lightblue')) %>%
+  add_lines(y = ~Upper, name = 'Upper Bound', line = list(color = 'lightblue')) %>%
+  add_lines(y = ~ts_data, name = 'Actual', line = list(color = 'red')) %>%
+  layout(title = 'Dynamic Forecast Plot', xaxis = list(title = 'Time'), yaxis = list(title = 'Values'))
 
 df1 <- inner_test_filter %>%
   select(account_id, gender) %>%
@@ -556,6 +586,110 @@ formattable_diff
 
 
 
+library(plotly)
+
+# Création de données de démonstration
+set.seed(123)
+time_series <- seq(as.Date("2022-01-01"), by = "month", length.out = 24)
+values <- sin(seq(0, 2*pi, length.out = 24)) + rnorm(24)
+
+# Fit d'un modèle de séries chronologiques
+fit <- auto.arima(values)
+
+# Prévisions
+forecast_values <- forecast(fit, h = 12)
+
+# Création de données de démonstration
+set.seed(123)
+time_series <- seq(as.Date("2022-01-01"), by = "month", length.out = 12)
+values <- sin(seq(0, 2*pi, length.out = 12)) + rnorm(12)
+
+# Fit d'un modèle de séries chronologiques
+fit <- auto.arima(values)
+
+# Prévisions
+forecast_values <- forecast(fit, h = 12)
+
+# Ajustement de time_series pour correspondre à la longueur de values
+time_series <- seq(as.Date(tail(time_series, 1)), by = "month", length.out = 24)
+
+# Création du graphique avec Plotly
+plot_ly() %>%
+  add_lines(x = time_series, y = values, name = "Actual") %>%
+  add_lines(x = forecast_values$x, y = forecast_values$mean, name = "Forecast") %>%
+  layout(title = "Time Series Forecast",
+         xaxis = list(title = "Date"),
+         yaxis = list(title = "Values"))
 
 
 
+time<- seq(as.Date("2022-01-01"), by = "month", length.out = 10)
+lower<- c(NA,NA,NA,NA,8.07,5.00,5.43,5.76,6.02,6.22)
+loss<- c(3.75,11.89,15.03,4.98,8.07,NA,NA,NA,NA,NA)
+loss_predict<- c(NA,NA,NA,NA,8.07,8.08,8.08,8.08,8.08,8.08)
+upper<- c(NA,NA,NA,NA,8.07,11.17,10.73,10.41,10.15,9.94)
+data = data.frame(time,lower,loss,loss_predict,upper)
+
+# Création du graphique avec Plotly
+plot_ly(data, x = ~time) %>%
+  add_lines(y = ~loss, name = "Loss", line = list(color = "blue")) %>%
+  add_lines(y = ~loss_predict, name = "Loss Prediction", line = list(color = "red")) %>%
+  add_lines(y = ~lower, name = "Lower", line = list(color = "green")) %>%
+  add_lines(y = ~upper, name = "Upper", line = list(color = "green")) %>%
+  layout(title = "Loss Prediction vs Actual Loss",
+         xaxis = list(title = "Time", tickformat = "%b %Y"),
+         yaxis = list(title = "Loss(Million)",tickformat = ",.2r",ticksufix = "M"))
+
+
+### groupe de population à risque
+age_group<-c(rep("<30",4),rep("30-39",4),rep("40-49",4), rep("50-59",4), rep(">=60",4))
+risk_intensity<- c(c(71.96,28.04,0,0),c(69.37,21.52,9.11,0),c(52.6,23.53,12,11.9),c(68.27,20.36,6.37,5.0),c(54.3,26.15,12.97,6.6))
+risk_quality<- rep(c("none","low","medium","high"),5)
+risk_data <- data.frame(age_group,risk_intensity,risk_quality)
+
+
+
+
+# Définir une palette de couleurs Viridis
+palette_colors <- viridisLite::viridis(4)
+
+# Spécifier l'ordre des niveaux de la variable age_group
+risk_data$risk_quality <- factor(risk_data$risk_quality, levels = c("none", "low", "medium", "high"))
+risk_data$age_group <- factor(risk_data$age_group, levels = c("<30","30-39","40-49", "50-59", ">=60"))
+
+# Créer le graphique à partir des données risk_data avec la palette de couleurs Viridis
+plot_ly(risk_data, x = ~risk_intensity/100, y = ~age_group, 
+        color = ~risk_quality, colors = palette_colors, 
+        type = "bar", orientation = "h") %>%
+  layout(title = "Dormant Risk Intensity by Age Group",
+         xaxis = list(title = "Risk Intensity (%)", tickformat=".1%"),
+         yaxis = list(title = "Age Group"),
+         barmode = "stack", # Utilisation de barmode = "stack" pour empiler les barres
+         legend = list(title = "Risk Quality"))
+
+
+
+# Données pour le groupe de population à risque avec la variable current_balance_risk
+current_balance_risk <- rep(c("<250K", "250K-500K", "500K-750K", ">750K"), each = 4)
+risk_intensity_balance <- c(c(39.7, 25.3, 20, 15), c(56.18, 21.52, 12.3, 10), c(64.17, 23.53, 7, 5.3), c(62.77, 27.36, 6.37, 3.5))
+risk_quality <- rep(c("none", "low", "medium", "high"), 4)
+
+# Création du dataframe pour le groupe de population à risque avec la variable current_balance_risk
+risk_data_balance <- data.frame(current_balance_risk, risk_intensity_balance, risk_quality)
+
+# Définir une palette de couleurs Viridis
+palette_colors <- viridisLite::viridis(4)
+
+# Spécifier l'ordre des niveaux des variables
+risk_data_balance$risk_quality <- factor(risk_data_balance$risk_quality, levels = c("none", "low", "medium", "high"))
+risk_data_balance$current_balance_risk <- factor(risk_data_balance$current_balance_risk, levels = c("<250K", "250K-500K", "500K-750K", ">750K"))
+
+# Créer le graphique à partir des données risk_data avec la palette de couleurs Viridis
+plot_ly(risk_data_balance, x = ~risk_intensity_balance/100, y = ~current_balance_risk, 
+        color = ~risk_quality, colors = palette_colors, 
+        type = "bar", orientation = "h") %>%
+  layout(title = "Dormant Risk Intensity by current balance",
+         xaxis = list(title = "Risk Intensity (%)", tickformat = ".1%"),
+         yaxis = list(title = "Age Group"),
+         barmode = "stack", # Utilisation de barmode = "stack" pour empiler les barres
+         legend = list(title = "Risk Quality"))

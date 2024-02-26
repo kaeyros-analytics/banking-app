@@ -253,3 +253,44 @@ table_predict_data <- predict_data %>%
 
 
 
+  
+# Charger la bibliothèque ggplot2
+library(ggplot2)
+
+# Charger les bibliothèques
+library(ggplot2)
+library(forecast)
+
+# Générer des données de séries temporelles factices
+# Générer des données de séries temporelles factices pour les pertes financières
+set.seed(123)
+dates <- seq(as.Date("2023-01-01"), by = "1 month", length.out = 36)
+loss <- cumsum(runif(36, min = -50000, max = 100000)) # Cumulative losses over time
+
+# Effectuer une prédiction avec la méthode de Holt-Winters
+fit <- HoltWinters(loss)
+
+# Nombre de périodes à prédire
+n_pred <- 12
+forecast_values <- forecast(fit, h = n_pred)
+
+# Créer un dataframe pour la visualisation
+loss_data <- data.frame(
+  Date = c(dates, seq(dates[length(dates)], by = "month", length.out = n_pred)),
+  Loss = c(loss, forecast_values$mean),
+  Lower = c(rep(NA, length(loss)), forecast_values$lower[, 2]),
+  Upper = c(rep(NA, length(loss)), forecast_values$upper[, 2]),
+  Type = rep(c("Actual", "Forecast"), c(length(loss), n_pred))
+)
+plot(ts(loss))
+
+# Convertir en format plotly
+loss_plot <- plot_ly(data = loss_data, x = ~Date, y = ~Loss, type = 'scatter', mode = 'lines', name = 'Loss') %>%
+  add_trace(y = ~Upper, fill = 'tonexty', fillcolor = 'rgba(255,0,0,0.2)', line = list(color = 'transparent'), name = 'Upper Bound') %>%
+  add_trace(y = ~Lower, fill = 'tonexty', fillcolor = 'rgba(255,0,0,0.2)', line = list(color = 'transparent'), name = 'Lower Bound') %>%
+  layout(title = "Pertes financières en banque dues au churn avec prédiction et intervalle de confiance",
+         xaxis = list(title = "Date"),
+         yaxis = list(title = "Pertes financières"))
+
+# Afficher le graphique
+loss_plot

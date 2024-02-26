@@ -28,6 +28,9 @@ library(rhandsontable)
 library(formattable)
 library(shinyWidgets)
 library(plotly)
+library(forecast)
+library(dichromat)
+library(rms)
 ## 1. get root dir ----
 root <- getwd()
 # paths to JSON files
@@ -112,7 +115,7 @@ population <- account %>%
   # Calcul de la date de la dernière transaction pour chaque compte
   mutate(last_transaction_date = max(transaction_date, na.rm = TRUE)) 
 
-# "Inactive"==0, "Active"==1
+# "Dormant"==0, "Operating"==1
 data1 <- (population %>% 
             filter(transaction_date < as.Date("2018-01-31")) %>% 
             mutate(status = if_else((as.Date("2018-01-31") - last_transaction_date) > 120, 0, 1),
@@ -203,7 +206,7 @@ log_model6 <- glm(status ~ age_interval+gender+ occupation+location + monthly_re
 predict_status <- function(model, new_data) {
   # Prédire les probabilités des classes
   predictions <- predict(model, newdata = new_data, type = "response")
-  predicted_classes <- ifelse(predictions > 0.5, "Active", "Inactive")
+  predicted_classes <- ifelse(predictions > 0.5, "Operating", "Dormant")
   
   return(predicted_classes)
 }
@@ -239,5 +242,44 @@ table_predict_data <- predict_data %>%
     PD_month6=round(1-1/(1 + exp(-predict(log_model6, newdata = predict_data[1:6], type = "response"))),2),
   )
 
+# Extract Coefficients
+coefficients <- summary(log_model6)$coefficients[, "Estimate"]
+
+names(coefficients)<- c("Intercept","age(30-39)","age(40-49)","age(50-59)","age(>=60)",              
+                        "Women","occupation(Agriculteur)","occupation(Commerçant)","occupation(Profession libérale)",
+                        "occupation(Employé)","location(Yaoundé)","location(Garoua)","location(Bamenda)",
+                        "monthly_revenue(250K-500K)", "monthly_revenue_(500K-750K)",
+                        "monthly_revenue(>750K)","number_of_children")
+
+inner_account_trans_agios <- account %>% 
+  inner_join(transactions, by = "account_id", relationship = "many-to-many") %>%
+  inner_join(agios, by = "account_id", relationship = "many-to-many")
 
 
+### groupe de population à risque
+age_group<-c(rep("<30",4),rep("30-39",4),rep("40-49",4), rep("50-59",4), rep(">=60",4))
+risk_intensity<- c(c(71.96,28.04,0,0),c(69.37,21.52,9.11,0),c(52.6,23.53,12,11.9),c(68.27,20.36,6.37,5.0),c(54.3,26.15,12.97,6.6))
+risk_quality<- rep(c("none","low","medium","high"),5)
+risk_data <- data.frame(age_group,risk_intensity,risk_quality)
+
+# Spécifier l'ordre des niveaux de la variable age_group
+risk_data$risk_quality <- factor(risk_data$risk_quality, levels = c("none", "low", "medium", "high"))
+risk_data$age_group <- factor(risk_data$age_group, levels = c("<30","30-39","40-49", "50-59", ">=60"))
+
+
+###current balance à risque
+
+# Données pour le groupe de population à risque avec la variable current_balance_risk
+current_balance_risk <- rep(c("<250K", "250K-500K", "500K-750K", ">750K"), each = 4)
+risk_intensity_balance <- c(c(39.7, 25.3, 20, 15), c(56.18, 21.52, 12.3, 10), c(64.17, 23.53, 7, 5.3), c(62.77, 27.36, 6.37, 3.5))
+risk_quality <- rep(c("none", "low", "medium", "high"), 4)
+
+# Création du dataframe pour le groupe de population à risque avec la variable current_balance_risk
+risk_data_balance <- data.frame(current_balance_risk, risk_intensity_balance, risk_quality)
+
+# Définir une palette de couleurs Viridis
+palette_colors <- viridisLite::viridis(4)
+
+# Spécifier l'ordre des niveaux des variables
+risk_data_balance$risk_quality <- factor(risk_data_balance$risk_quality, levels = c("none", "low", "medium", "high"))
+risk_data_balance$current_balance_risk <- factor(risk_data_balance$current_balance_risk, levels = c("<250K", "250K-500K", "500K-750K", ">750K"))
